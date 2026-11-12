@@ -1,5 +1,5 @@
 import "./overrides.css";
-import { ItemView, Menu, Notice, WorkspaceLeaf } from "obsidian";
+import { ItemView, Menu, Notice, TFile, WorkspaceLeaf } from "obsidian";
 import { Calendar, EventSourceInput } from "@fullcalendar/core";
 import { renderCalendar } from "./calendar";
 import FullCalendarPlugin from "../main";
@@ -15,8 +15,8 @@ import { launchCreateModal, launchEditModal } from "./event_modal";
 import { isTask, toggleTask, unmakeTask } from "src/ui/tasks";
 import { UpdateViewCallback } from "src/core/EventCache";
 
-export const FULL_CALENDAR_VIEW_TYPE = "full-calendar-view";
-export const FULL_CALENDAR_SIDEBAR_VIEW_TYPE = "full-calendar-sidebar-view";
+export const FULL_CALENDAR_VIEW_TYPE = "full-calendar-pj-view";
+export const FULL_CALENDAR_SIDEBAR_VIEW_TYPE = "full-calendar-pj-sidebar-view";
 
 function getCalendarColors(color: string | null | undefined): {
     color: string;
@@ -50,9 +50,64 @@ function getCalendarColors(color: string | null | undefined): {
     };
 }
 
+const PREVIEW_MAX_LINES = 12;
+
+/** Turn a note body into a short plain-text preview. */
+function makePreview(body: string): string {
+    const lines = body
+        .split(/\r?\n/)
+        .map((l) =>
+            l
+                .replace(/^\s*[-*+]\s+\[[xX]\]\s+/, "☑ ")
+                .replace(/^\s*[-*+]\s+\[ \]\s+/, "☐ ")
+                .replace(/^\s*[-*+]\s+/, "• ")
+                .replace(/^#{1,6}\s+/, "")
+                .replace(/\[\[([^\]|]*\|)?([^\]]*)\]\]/g, "$2")
+                .replace(/[*_`]/g, "")
+                .trim()
+        )
+        .filter((l) => l.length > 0);
+    return lines.slice(0, PREVIEW_MAX_LINES).join("\n");
+}
+
 export class CalendarView extends ItemView {
     plugin: FullCalendarPlugin;
     inSidebar: boolean;
+    // Preview text by note path, valid while the note's mtime is unchanged.
+    private previewCache = new Map<string, { mtime: number; text: string }>();
+
+    async getNotePreview(eventId: string): Promise<string | null> {
+        if (!this.plugin.cache) {
+            return null;
+        }
+        let path: string;
+        try {
+            const { location } =
+                this.plugin.cache.getInfoForEditableEvent(eventId);
+            // Only full-note events have a note of their own.
+            if (location.lineNumber !== undefined) {
+                return null;
+            }
+            path = location.path;
+        } catch (e) {
+            return null; // remote / read-only events
+        }
+        const file = this.app.vault.getAbstractFileByPath(path);
+        if (!(file instanceof TFile)) {
+            return null;
+        }
+        const cached = this.previewCache.get(path);
+        if (cached && cached.mtime === file.stat.mtime) {
+            return cached.text;
+        }
+        const text = await this.app.vault.cachedRead(file);
+        const m = text.match(
+            /^---\r?\n[\s\S]*?\r?\n---[ \t]*(?:\r?\n|$)([\s\S]*)$/
+        );
+        const preview = makePreview(m ? m[1] : text);
+        this.previewCache.set(path, { mtime: file.stat.mtime, text: preview });
+        return preview;
+    }
     fullCalendarView: Calendar | null = null;
     callback: UpdateViewCallback | null = null;
 
@@ -210,6 +265,7 @@ export class CalendarView extends ItemView {
             firstDay: this.plugin.settings.firstDay,
             initialView: this.plugin.settings.initialView,
             timeFormat24h: this.plugin.settings.timeFormat24h,
+            getPreview: (eventId) => this.getNotePreview(eventId),
             openContextMenuForEvent: async (e, mouseEvent) => {
                 const menu = new Menu();
                 if (!this.plugin.cache) {
@@ -251,6 +307,93 @@ export class CalendarView extends ItemView {
                                 return;
                             }
                             openFileForEvent(this.plugin.cache, this.app, e.id);
+                        })
+                    );
+                    menu.addItem((item) =>
+                        item.setTitle("Duplicate").onClick(async () => {
+                            if (!this.plugin.cache) {
+                                return;
+                            }
+                            try {
+                                const { calendar, location } =
+                                    this.plugin.cache.getInfoForEditableEvent(
+                                        e.id
+                                    );
+                                // Full-note events: grab the note body (everything after the frontmatter).
+                                let body = "";
+                                let folder = "";
+                                if (location.lineNumber === undefined) {
+                                    const src = this.app.vault.getAbstractFileByPath(
+                                        location.path
+                                    );
+                                    if (src instanceof TFile) {
+                                        folder = src.parent?.path ?? "";
+                                        const text = await this.app.vault.read(
+                                            src
+                                        );
+                                        const m = text.match(
+                                            /^---\r?\n[\s\S]*?\r?\n---[ \t]*(?:\r?\n|$)([\s\S]*)$/
+                                        );
+                                        body = m ? m[1] : "";
+                                    }
+                                }
+                                // "Foo (2)" duplicates as "Foo (3)", not "Foo (2) (1)".
+                                const base = event.title.replace(
+                                    /\s*\(\d+\)$/,
+                                    ""
+                                );
+                                for (let n = 1; n < 1000; n++) {
+                                    const copy = {
+                                        ...event,
+                                        title: `${base} (${n})`,
+                                    };
+                                    delete (copy as { id?: string }).id;
+                                    try {
+                                        await this.plugin.cache.addEvent(
+                                            calendar.id,
+                                            copy
+                                        );
+                                        if (
+                                            body.trim() &&
+                                            copy.type !== "recurring" &&
+                                            copy.type !== "rrule"
+                                        ) {
+                                            const dup =
+                                                this.app.vault.getAbstractFileByPath(
+                                                    `${folder}/${copy.date} ${copy.title}.md`
+                                                );
+                                            if (dup instanceof TFile) {
+                                                await this.app.vault.append(
+                                                    dup,
+                                                    body
+                                                );
+                                            }
+                                        }
+                                        new Notice(
+                                            `Duplicated as "${copy.title}".`
+                                        );
+                                        return;
+                                    } catch (err) {
+                                        // File name taken: try the next number.
+                                        if (
+                                            !(err instanceof Error) ||
+                                            !err.message.includes(
+                                                "already exists"
+                                            )
+                                        ) {
+                                            throw err;
+                                        }
+                                    }
+                                }
+                            } catch (err) {
+                                new Notice(
+                                    `Could not duplicate event: ${
+                                        err instanceof Error
+                                            ? err.message
+                                            : err
+                                    }`
+                                );
+                            }
                         })
                     );
                     menu.addItem((item) =>

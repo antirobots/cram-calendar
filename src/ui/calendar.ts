@@ -54,6 +54,8 @@ interface ExtraRenderProps {
     ) => Promise<void>;
     toggleTask?: (event: EventApi, isComplete: boolean) => Promise<boolean>;
     forceNarrow?: boolean;
+    /** Returns a short plain-text preview of the note behind an event. */
+    getPreview?: (eventId: string) => Promise<string | null>;
 }
 
 export function renderCalendar(
@@ -70,6 +72,7 @@ export function renderCalendar(
         eventMouseEnter,
         openContextMenuForEvent,
         toggleTask,
+        getPreview,
     } = settings || {};
     const modifyEventCallback =
         modifyEvent &&
@@ -88,7 +91,70 @@ export function renderCalendar(
             }
         });
 
+    // Zoom: row height (em) of each time slot, remembered between sessions.
+    const ZOOM_KEY = "full-calendar-pj-slot-height";
+    const ZOOM_MIN = 0.5;
+    const ZOOM_MAX = 6;
+    const ZOOM_DEFAULT = 1.5;
+    let slotHeight = ZOOM_DEFAULT;
+    try {
+        const stored = parseFloat(window.localStorage.getItem(ZOOM_KEY) || "");
+        if (!isNaN(stored)) {
+            slotHeight = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, stored));
+        }
+    } catch (e) {}
+    containerEl.style.setProperty("--pj-slot-height", `${slotHeight}em`);
+    const setZoom = (next: number) => {
+        const oldHeight = slotHeight;
+        slotHeight = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, next));
+        if (slotHeight === oldHeight) {
+            return;
+        }
+        containerEl.style.setProperty("--pj-slot-height", `${slotHeight}em`);
+        try {
+            window.localStorage.setItem(ZOOM_KEY, String(slotHeight));
+        } catch (e) {}
+        // FullCalendar only recomputes event/now-line positions when the time
+        // grid redraws, and a CSS change alone doesn't trigger that. So redraw,
+        // keeping the current date and scroll position (scaled to the new height).
+        const scrollSelector = ".fc-timegrid .fc-scroller";
+        const scroller = containerEl.querySelector(
+            scrollSelector
+        ) as HTMLElement | null;
+        const scrollTop = scroller
+            ? scroller.scrollTop * (slotHeight / oldHeight)
+            : 0;
+        const date = cal.getDate();
+        cal.destroy();
+        cal.render();
+        cal.gotoDate(date);
+        requestAnimationFrame(() => {
+            const s = containerEl.querySelector(
+                scrollSelector
+            ) as HTMLElement | null;
+            if (s) {
+                s.scrollTop = scrollTop;
+            }
+        });
+    };
+    const zoomFactor = 1.25;
+    containerEl.addEventListener(
+        "wheel",
+        (e: WheelEvent) => {
+            if (!e.ctrlKey) {
+                return;
+            }
+            e.preventDefault();
+            setZoom(e.deltaY < 0 ? slotHeight * zoomFactor : slotHeight / zoomFactor);
+        },
+        { passive: false }
+    );
+
     const cal = new Calendar(containerEl, {
+        customButtons: {
+            zoomIn: { text: "+", hint: "Zoom in", click: () => setZoom(slotHeight * zoomFactor) },
+            zoomOut: { text: "−", hint: "Zoom out", click: () => setZoom(slotHeight / zoomFactor) },
+        },
         plugins: [
             // View plugins
             dayGridPlugin,
@@ -106,6 +172,8 @@ export function renderCalendar(
             settings?.initialView?.[isNarrow ? "mobile" : "desktop"] ||
             (isNarrow ? "timeGrid3Days" : "timeGridWeek"),
         nowIndicator: true,
+        slotDuration: "00:15:00",
+        snapDuration: "00:15:00",
         scrollTimeReset: false,
         dayMaxEvents: true,
 
@@ -113,7 +181,7 @@ export function renderCalendar(
             ? {
                   left: "prev,next today",
                   center: "title",
-                  right: "dayGridMonth,timeGridWeek,timeGridDay,listWeek",
+                  right: "zoomOut,zoomIn dayGridMonth,timeGridWeek,timeGridDay,listWeek",
               }
             : !isMobile
             ? {
@@ -171,11 +239,32 @@ export function renderCalendar(
 
         eventMouseEnter,
 
-        eventDidMount: ({ event, el, textColor }) => {
+        eventDidMount: ({ event, el, textColor, view }) => {
             el.addEventListener("contextmenu", (e) => {
                 e.preventDefault();
                 openContextMenuForEvent && openContextMenuForEvent(event, e);
             });
+            // Note preview: shown under the title in the time-grid views. The
+            // event block clips overflow, so short events just show their title.
+            if (getPreview && view.type.startsWith("timeGrid")) {
+                const frame =
+                    el.querySelector(".fc-event-main-frame") ||
+                    el.querySelector(".fc-event-main");
+                if (frame) {
+                    const previewEl = document.createElement("div");
+                    previewEl.className = "pj-event-preview";
+                    frame.appendChild(previewEl);
+                    getPreview(event.id)
+                        .then((text) => {
+                            if (text) {
+                                previewEl.textContent = text;
+                            } else {
+                                previewEl.remove();
+                            }
+                        })
+                        .catch(() => previewEl.remove());
+                }
+            }
             if (toggleTask) {
                 if (event.extendedProps.isTask) {
                     const checkbox = document.createElement("input");

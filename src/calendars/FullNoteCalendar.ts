@@ -62,7 +62,7 @@ function replaceFrontmatter(page: string, newFrontmatter: string): string {
     return `---\n${newFrontmatter}---${extractPageContents(page)}`;
 }
 
-type PrintableAtom = Array<number | string> | number | string | boolean;
+type PrintableAtom = Array<number | string> | number | string | boolean | null;
 
 function stringifyYamlAtom(v: PrintableAtom): string {
     let result = "";
@@ -70,6 +70,9 @@ function stringifyYamlAtom(v: PrintableAtom): string {
         result += "[";
         result += v.map(stringifyYamlAtom).join(",");
         result += "]";
+    } else if (typeof v === "string" && v.startsWith("#")) {
+        // An unquoted "#" starts a YAML comment (e.g. hex colours), so quote it.
+        result += JSON.stringify(v);
     } else {
         result += `${v}`;
     }

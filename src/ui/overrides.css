@@ -80,3 +80,19 @@
 	border-color: black !important;
 	border-width: 1px !important;
 }
+
+/* Zoom: set by the +/- toolbar buttons and Ctrl+scroll */
+.fc .fc-timegrid-slots td.fc-timegrid-slot {
+	height: var(--pj-slot-height, 1.5em) !important;
+}
+
+/* Note preview inside time-grid event blocks. The block clips overflow, so
+   short events only show their title. */
+.fc .pj-event-preview {
+	margin-top: 2px;
+	font-size: 0.8em;
+	line-height: 1.25;
+	white-space: pre-wrap;
+	overflow: hidden;
+	opacity: 0.85;
+}

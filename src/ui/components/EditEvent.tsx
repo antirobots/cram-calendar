@@ -75,6 +75,78 @@ const DaySelect = ({
     );
 };
 
+const COLOR_PALETTE = [
+    "#7558a7", // purple
+    "#3f7a4a", // green
+    "#b07a1e", // amber
+    "#b8352b", // red
+    "#3b6ea8", // blue
+    "#2f8f8f", // teal
+    "#b0488f", // pink
+    "#6b7280", // grey
+];
+
+const ColorPicker = ({
+    value,
+    onChange,
+}: {
+    value: string;
+    onChange: (color: string) => void;
+}) => {
+    const swatch = (selected: boolean): React.CSSProperties => ({
+        width: "22px",
+        height: "22px",
+        borderRadius: "50%",
+        padding: 0,
+        marginRight: "0.35rem",
+        cursor: "pointer",
+        border: selected
+            ? "2px solid var(--text-normal)"
+            : "1px solid var(--background-modifier-border)",
+    });
+    const isCustom = value !== "" && !COLOR_PALETTE.includes(value);
+    return (
+        <div
+            style={{ display: "flex", alignItems: "center", flexWrap: "wrap" }}
+        >
+            <button
+                type="button"
+                title="Default (calendar colour)"
+                style={{
+                    ...swatch(value === ""),
+                    background: "var(--background-primary)",
+                    fontSize: "11px",
+                    lineHeight: "18px",
+                }}
+                onClick={() => onChange("")}
+            >
+                ∅
+            </button>
+            {COLOR_PALETTE.map((c) => (
+                <button
+                    key={c}
+                    type="button"
+                    title={c}
+                    style={{ ...swatch(value === c), backgroundColor: c }}
+                    onClick={() => onChange(c)}
+                />
+            ))}
+            <input
+                type="color"
+                title="Custom colour"
+                value={/^#[0-9a-fA-F]{6}$/.test(value) ? value : "#7558a7"}
+                style={{
+                    width: "28px",
+                    height: "24px",
+                    padding: 0,
+                    outline: isCustom ? "2px solid var(--text-normal)" : "none",
+                }}
+                onChange={(e) => onChange(e.target.value)}
+            />
+        </div>
+    );
+};
+
 interface EditEventProps {
     submit: (frontmatter: OFCEvent, calendarIndex: number) => Promise<void>;
     readonly calendars: {
@@ -138,6 +210,8 @@ export const EditEvent = ({
     const [allDay, setAllDay] = useState(initialEvent?.allDay || false);
 
     const [calendarIndex, setCalendarIndex] = useState(defaultCalendarIndex);
+    // "" means "use the calendar's colour".
+    const [color, setColor] = useState(initialEvent?.color || "");
 
     const [complete, setComplete] = useState(
         initialEvent?.type === "single" &&
@@ -165,6 +239,12 @@ export const EditEvent = ({
         await submit(
             {
                 ...{ title },
+                // null clears a colour that was previously set in the note.
+                ...(color
+                    ? { color }
+                    : initialEvent?.color
+                    ? { color: null }
+                    : {}),
                 ...(allDay
                     ? { allDay: true }
                     : { allDay: false, startTime: startTime || "", endTime }),
@@ -248,6 +328,9 @@ export const EditEvent = ({
                             ))}
                     </select>
                 </p>
+                <div style={{ marginBottom: "1em" }}>
+                    <ColorPicker value={color} onChange={setColor} />
+                </div>
                 <p>
                     {!isRecurring && (
                         <input

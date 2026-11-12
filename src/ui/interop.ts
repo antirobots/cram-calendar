@@ -230,6 +230,18 @@ export function toEventInput(
         }
     }
 
+    // Per-event colour from frontmatter overrides the calendar source's colour.
+    if (frontmatter.color) {
+        event = {
+            ...event,
+            color: frontmatter.color,
+            extendedProps: {
+                ...(event.extendedProps || {}),
+                ofcColor: frontmatter.color,
+            },
+        };
+    }
+
     return event;
 }
 
@@ -239,6 +251,9 @@ export function fromEventApi(event: EventApi): OFCEvent {
     const endDate = getDate(event.end as Date);
     return {
         title: event.title,
+        ...(event.extendedProps.ofcColor
+            ? { color: event.extendedProps.ofcColor }
+            : {}),
         ...(event.allDay
             ? { allDay: true }
             : {

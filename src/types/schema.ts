@@ -61,6 +61,8 @@ export const TimeSchema = z.discriminatedUnion("allDay", [
 export const CommonSchema = z.object({
     title: z.string(),
     id: z.string().optional(),
+    // Optional per-event colour (any CSS colour, e.g. "#7558a7" or "red"); overrides the calendar colour.
+    color: z.string().nullable().optional(),
 });
 
 export const EventSchema = z.discriminatedUnion("type", [
