@@ -409,3 +409,11 @@
 .fc .fc-button-group > .fc-button {
 	margin-left: 0;
 }
+
+/* ---- UI pass: keyboard focus ---- */
+.fc .fc-button:focus-visible,
+.fc a.fc-event:focus-visible,
+.pj-calendar-row:focus-within {
+	outline: 2px solid var(--interactive-accent);
+	outline-offset: 1px;
+}

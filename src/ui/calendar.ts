@@ -181,6 +181,24 @@ export function renderCalendar(
             settings?.initialView?.[isNarrow ? "mobile" : "desktop"] ||
             (isNarrow ? "timeGrid3Days" : "timeGridWeek"),
         nowIndicator: true,
+        // Icon-only toolbar buttons need accessible names (runs after each render).
+        datesSet: () => {
+            const names: Record<string, string> = {
+                zoomIn: "Zoom in",
+                zoomOut: "Zoom out",
+                calendars: "Show or hide calendars",
+            };
+            for (const [key, label] of Object.entries(names)) {
+                const btn = containerEl.querySelector(`.fc-${key}-button`);
+                btn?.setAttribute("aria-label", label);
+                if (key === "calendars") {
+                    btn?.setAttribute("aria-haspopup", "true");
+                    if (!btn?.hasAttribute("aria-expanded")) {
+                        btn?.setAttribute("aria-expanded", "false");
+                    }
+                }
+            }
+        },
         // Time badge on the hour axis at the now-line, kept current each minute.
         nowIndicatorDidMount: ({ el, isAxis }) => {
             if (!isAxis) {

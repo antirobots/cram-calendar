@@ -194,7 +194,11 @@ export class CalendarView extends ItemView {
     private calendarPopover: HTMLElement | null = null;
     private calendarPopoverCleanup: (() => void) | null = null;
 
+    private calendarPopoverAnchor: HTMLElement | null = null;
+
     private closeCalendarMenu() {
+        this.calendarPopoverAnchor?.setAttribute("aria-expanded", "false");
+        this.calendarPopoverAnchor = null;
         this.calendarPopover?.remove();
         this.calendarPopover = null;
         this.calendarPopoverCleanup?.();
@@ -221,6 +225,10 @@ export class CalendarView extends ItemView {
 
         const pop = container.createDiv({ cls: "pj-calendar-popover" });
         this.calendarPopover = pop;
+        pop.setAttribute("role", "group");
+        pop.setAttribute("aria-label", "Show or hide calendars");
+        this.calendarPopoverAnchor = anchor;
+        anchor.setAttribute("aria-expanded", "true");
         const cRect = container.getBoundingClientRect();
         const aRect = anchor.getBoundingClientRect();
         pop.style.left = `${aRect.left - cRect.left}px`;
@@ -257,9 +265,18 @@ export class CalendarView extends ItemView {
                 this.closeCalendarMenu();
             }
         };
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (e.key === "Escape") {
+                this.closeCalendarMenu();
+                anchor.focus();
+            }
+        };
         doc.addEventListener("mousedown", onDocDown);
-        this.calendarPopoverCleanup = () =>
+        doc.addEventListener("keydown", onKeyDown);
+        this.calendarPopoverCleanup = () => {
             doc.removeEventListener("mousedown", onDocDown);
+            doc.removeEventListener("keydown", onKeyDown);
+        };
     }
 
     async onOpen() {
