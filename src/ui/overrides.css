@@ -269,3 +269,42 @@
 	line-height: 1.1;
 	font-size: 0.85em;
 }
+
+/* ---- UI pass: Notion-style event cards ----
+   --pj-event-color (an "r, g, b" triplet) is set per event in calendar.ts.
+   The tint sits on an opaque theme background so overlapping events don't
+   show through each other. */
+.fc .fc-event.pj-card {
+	--pj-tint: 0.28;
+	background-color: var(--background-primary) !important;
+	background-image: linear-gradient(
+		rgba(var(--pj-event-color), var(--pj-tint)),
+		rgba(var(--pj-event-color), var(--pj-tint))
+	) !important;
+	border: 0 !important;
+	border-radius: 6px !important;
+	box-shadow: inset 3px 0 0 rgb(var(--pj-event-color)) !important;
+	color: var(--text-normal) !important;
+}
+.fc .fc-event.pj-card:hover {
+	--pj-tint: 0.4;
+}
+.fc .fc-event.pj-card .fc-event-main,
+.fc .fc-event.pj-card .fc-event-title {
+	color: var(--text-normal) !important;
+}
+.fc .fc-event.pj-card .fc-event-main {
+	padding-left: 5px;
+}
+.fc .fc-event.pj-card .fc-event-time,
+.fc .fc-event.pj-card .pj-event-duration {
+	color: var(--text-muted) !important;
+	font-size: 0.9em;
+}
+.fc .fc-event.pj-card .fc-event-title {
+	font-weight: 600 !important;
+}
+/* A 1px gap between neighbouring events. */
+.fc .fc-timegrid-event-harness > .fc-timegrid-event {
+	margin-right: 1px;
+}

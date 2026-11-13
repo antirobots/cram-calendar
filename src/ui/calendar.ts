@@ -258,6 +258,19 @@ export function renderCalendar(
                 e.preventDefault();
                 openContextMenuForEvent && openContextMenuForEvent(event, e);
             });
+            // Notion-style card: CSS tints the background and draws a left accent
+            // bar from --pj-event-color, which is the event's resolved colour.
+            if (
+                !view.type.startsWith("list") &&
+                !el.classList.contains("fc-daygrid-dot-event")
+            ) {
+                const c = el.style.backgroundColor || el.style.borderColor;
+                const m = c && c.match(/\d+(\.\d+)?/g);
+                if (m && m.length >= 3) {
+                    el.style.setProperty("--pj-event-color", `${m[0]}, ${m[1]}, ${m[2]}`);
+                    el.classList.add("pj-card");
+                }
+            }
             // Flag narrow (side-by-side) events so CSS can shrink/wrap the title.
             if (view.type.startsWith("timeGrid") && !event.allDay) {
                 const updateNarrow = () => {
