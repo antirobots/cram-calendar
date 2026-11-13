@@ -56,6 +56,8 @@ interface ExtraRenderProps {
     forceNarrow?: boolean;
     /** Returns a short plain-text preview of the note behind an event. */
     getPreview?: (eventId: string) => Promise<string | null>;
+    /** Opens the show/hide calendars dropdown under the given toolbar button. */
+    openCalendarMenu?: (anchor: HTMLElement) => void;
 }
 
 export function renderCalendar(
@@ -73,6 +75,7 @@ export function renderCalendar(
         openContextMenuForEvent,
         toggleTask,
         getPreview,
+        openCalendarMenu,
     } = settings || {};
     const modifyEventCallback =
         modifyEvent &&
@@ -154,6 +157,12 @@ export function renderCalendar(
         customButtons: {
             zoomIn: { text: "+", hint: "Zoom in", click: () => setZoom(slotHeight * zoomFactor) },
             zoomOut: { text: "−", hint: "Zoom out", click: () => setZoom(slotHeight / zoomFactor) },
+            calendars: {
+                text: "Calendars ▾",
+                hint: "Show or hide calendars",
+                click: (_ev: MouseEvent, el: HTMLElement) =>
+                    openCalendarMenu?.(el),
+            },
         },
         plugins: [
             // View plugins
@@ -179,7 +188,9 @@ export function renderCalendar(
 
         headerToolbar: !isNarrow
             ? {
-                  left: "prev,next today",
+                  left: openCalendarMenu
+                      ? "prev,next today calendars"
+                      : "prev,next today",
                   center: "title",
                   right: "zoomOut,zoomIn dayGridMonth,timeGridWeek,timeGridDay,listWeek",
               }
@@ -225,6 +236,9 @@ export function renderCalendar(
         eventClick,
 
         selectable: select && true,
+        // A plain click on empty space does nothing; the pointer must move a few
+        // pixels (a drag) before an event is created.
+        selectMinDistance: 5,
         selectMirror: select && true,
         select:
             select &&
@@ -244,6 +258,36 @@ export function renderCalendar(
                 e.preventDefault();
                 openContextMenuForEvent && openContextMenuForEvent(event, e);
             });
+            // Flag narrow (side-by-side) events so CSS can shrink/wrap the title.
+            if (view.type.startsWith("timeGrid") && !event.allDay) {
+                const updateNarrow = () => {
+                    el.classList.toggle("pj-narrow", el.clientWidth < 130);
+                };
+                if (typeof ResizeObserver !== "undefined") {
+                    new ResizeObserver(updateNarrow).observe(el);
+                }
+                updateNarrow();
+            }
+            // Total duration (e.g. "1h 30m") next to the time range.
+            if (view.type.startsWith("timeGrid") && !event.allDay) {
+                const timeEl = el.querySelector(".fc-event-time");
+                if (timeEl && event.start && event.end) {
+                    const mins = Math.round(
+                        (event.end.getTime() - event.start.getTime()) / 60000
+                    );
+                    if (mins > 0) {
+                        const h = Math.floor(mins / 60);
+                        const m = mins % 60;
+                        const text = [h ? `${h}h` : "", m ? `${m}m` : ""]
+                            .filter((s) => s)
+                            .join(" ");
+                        const durEl = document.createElement("span");
+                        durEl.className = "pj-event-duration";
+                        durEl.textContent = ` · ${text}`;
+                        timeEl.appendChild(durEl);
+                    }
+                }
+            }
             // Note preview: shown under the title in the time-grid views. The
             // event block clips overflow, so short events just show their title.
             if (getPreview && view.type.startsWith("timeGrid")) {

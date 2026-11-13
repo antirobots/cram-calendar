@@ -50,7 +50,28 @@ function getCalendarColors(color: string | null | undefined): {
     };
 }
 
+/** Shorten calendar names for display, e.g. "Time Log/Projects" -> "Projects". */
+function friendlyCalendarName(name: string): string {
+    try {
+        if (/^https?:\/\//i.test(name)) {
+            const u = new URL(name);
+            const last = decodeURIComponent(
+                u.pathname.split("/").filter(Boolean).pop() || ""
+            );
+            const host = u.hostname.replace(/^www\./, "");
+            const service = host.includes("outlook")
+                ? "Outlook"
+                : host.includes("google")
+                ? "Google"
+                : host;
+            return last ? `${service} · ${last}` : service;
+        }
+    } catch (e) {}
+    return name.split("/").filter(Boolean).pop() || name;
+}
+
 const PREVIEW_MAX_LINES = 12;
+const HIDDEN_CALENDARS_KEY = "full-calendar-pj-hidden-calendars";
 
 /** Turn a note body into a short plain-text preview. */
 function makePreview(body: string): string {
@@ -143,9 +164,102 @@ export class CalendarView extends ItemView {
                     (e) => toEventInput(e.id, e.event) || []
                 ),
                 editable,
+                // Hidden calendars keep their source but their events aren't drawn
+                // (and don't take up room when events overlap).
+                display: this.hiddenCalendars.has(id) ? "none" : "auto",
                 ...getCalendarColors(color),
             })
         );
+    }
+
+    // Calendars the user has toggled off in the bar above the calendar.
+    private hiddenCalendars: Set<string> = (() => {
+        try {
+            const raw = window.localStorage.getItem(HIDDEN_CALENDARS_KEY);
+            return new Set<string>(raw ? JSON.parse(raw) : []);
+        } catch (e) {
+            return new Set<string>();
+        }
+    })();
+
+    private saveHiddenCalendars() {
+        try {
+            window.localStorage.setItem(
+                HIDDEN_CALENDARS_KEY,
+                JSON.stringify([...this.hiddenCalendars])
+            );
+        } catch (e) {}
+    }
+
+    private calendarPopover: HTMLElement | null = null;
+    private calendarPopoverCleanup: (() => void) | null = null;
+
+    private closeCalendarMenu() {
+        this.calendarPopover?.remove();
+        this.calendarPopover = null;
+        this.calendarPopoverCleanup?.();
+        this.calendarPopoverCleanup = null;
+    }
+
+    /** Dropdown under the toolbar's "Calendars" button to show/hide each calendar. */
+    private openCalendarMenu(anchor: HTMLElement) {
+        if (this.calendarPopover) {
+            this.closeCalendarMenu();
+            return;
+        }
+        const container = this.containerEl.children[1] as HTMLElement;
+        container.style.position = "relative";
+        const entries = [...this.plugin.cache.calendars.entries()];
+        const apply = () => {
+            this.saveHiddenCalendars();
+            const fc = this.fullCalendarView;
+            if (fc) {
+                fc.removeAllEventSources();
+                this.translateSources().forEach((s) => fc.addEventSource(s));
+            }
+        };
+
+        const pop = container.createDiv({ cls: "pj-calendar-popover" });
+        this.calendarPopover = pop;
+        const cRect = container.getBoundingClientRect();
+        const aRect = anchor.getBoundingClientRect();
+        pop.style.left = `${aRect.left - cRect.left}px`;
+        pop.style.top = `${aRect.bottom - cRect.top + 4}px`;
+
+        for (const [id, cal] of entries) {
+            const row = pop.createEl("label", { cls: "pj-calendar-row" });
+            row.title = cal.name;
+            const box = row.createEl("input", { type: "checkbox" });
+            box.checked = !this.hiddenCalendars.has(id);
+            const dot = row.createSpan({ cls: "pj-calendar-toggle-dot" });
+            dot.style.backgroundColor = getCalendarColors(
+                (cal as { color?: string }).color
+            ).color;
+            row.createSpan({
+                cls: "pj-calendar-row-name",
+                text: friendlyCalendarName(cal.name),
+            });
+            box.addEventListener("change", () => {
+                if (box.checked) {
+                    this.hiddenCalendars.delete(id);
+                } else {
+                    this.hiddenCalendars.add(id);
+                }
+                apply();
+            });
+        }
+
+        // Close when clicking anywhere outside the dropdown or its button.
+        const doc = container.ownerDocument;
+        const onDocDown = (e: MouseEvent) => {
+            const t = e.target as Node;
+            if (!pop.contains(t) && !anchor.contains(t)) {
+                this.closeCalendarMenu();
+            }
+        };
+        doc.addEventListener("mousedown", onDocDown);
+        this.calendarPopoverCleanup = () =>
+            doc.removeEventListener("mousedown", onDocDown);
     }
 
     async onOpen() {
@@ -266,6 +380,7 @@ export class CalendarView extends ItemView {
             initialView: this.plugin.settings.initialView,
             timeFormat24h: this.plugin.settings.timeFormat24h,
             getPreview: (eventId) => this.getNotePreview(eventId),
+            openCalendarMenu: (anchor) => this.openCalendarMenu(anchor),
             openContextMenuForEvent: async (e, mouseEvent) => {
                 const menu = new Menu();
                 if (!this.plugin.cache) {
