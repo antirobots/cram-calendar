@@ -229,11 +229,11 @@ export function renderCalendar(
 
         headerToolbar: !isNarrow
             ? {
-                  left: openCalendarMenu
-                      ? "prev,next today calendars"
-                      : "prev,next today",
-                  center: "title",
-                  right: "zoomOut,zoomIn dayGridMonth,timeGridWeek,timeGridDay,listWeek",
+                  left: "title",
+                  center: "",
+                  right:
+                      (openCalendarMenu ? "calendars " : "") +
+                      "today prev,next zoomOut,zoomIn dayGridMonth,timeGridWeek,timeGridDay,listWeek",
               }
             : !isMobile
             ? {

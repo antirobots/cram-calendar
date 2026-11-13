@@ -374,3 +374,38 @@
 	line-height: 1.4;
 	z-index: 5;
 }
+
+/* ---- UI pass: toolbar (left title, quiet buttons) ---- */
+.fc .fc-toolbar.fc-header-toolbar {
+	margin-bottom: 0.8em;
+}
+.fc .fc-toolbar-title {
+	font-size: var(--font-ui-large, 1.3em);
+	font-weight: 700;
+}
+.fc .fc-toolbar-chunk {
+	display: flex;
+	align-items: center;
+	gap: var(--size-4-2, 8px);
+}
+.fc .fc-button.fc-button-primary {
+	background: transparent !important;
+	color: var(--text-muted) !important;
+	box-shadow: none !important;
+	border-radius: var(--radius-s) !important;
+}
+.fc .fc-button.fc-button-primary:hover:not(:disabled) {
+	background: var(--background-modifier-hover) !important;
+	color: var(--text-normal) !important;
+}
+.fc .fc-button.fc-button-primary.fc-button-active,
+.fc .fc-button.fc-button-primary:not(:disabled):active {
+	background: var(--background-modifier-active-hover, var(--background-modifier-hover)) !important;
+	color: var(--text-normal) !important;
+}
+.fc .fc-button-group {
+	gap: 2px;
+}
+.fc .fc-button-group > .fc-button {
+	margin-left: 0;
+}
