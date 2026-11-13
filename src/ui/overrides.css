@@ -23,7 +23,7 @@
 	--fc-page-bg-color: var(--background-primary);
 	--fc-border-color: var(--background-modifier-border);
 
-	--fc-now-indicator-color: var(--text-error-hover);
+	--fc-now-indicator-color: var(--color-red, #e5484d);
 
 	--fc-more-link-bg-color: var(--background-primary-alt);
 	--fc-more-link-text-color: var(--text-accent);
@@ -330,7 +330,7 @@
 	color: var(--text-normal);
 }
 .fc .pj-day-num.is-today {
-	background: var(--text-error-hover);
+	background: var(--color-red, #e5484d);
 	color: var(--text-on-accent);
 	font-weight: 600;
 }
@@ -420,4 +420,14 @@
 .pj-calendar-row:focus-within {
 	outline: 2px solid var(--interactive-accent);
 	outline-offset: 1px;
+}
+
+/* Task events put a checkbox in the time row; keep the duration on its own line. */
+.fc .fc-event-time.ofc-has-checkbox {
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 4px;
+}
+.fc .fc-event-time.ofc-has-checkbox .pj-event-duration {
+	flex-basis: 100%;
 }
