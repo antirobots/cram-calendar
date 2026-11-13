@@ -159,6 +159,46 @@ export function renderCalendar(
         { passive: false }
     );
 
+    // FullCalendar tracks drags/resizes with mousemove/mouseup listeners on the
+    // global `document`. In an Obsidian popout window those events fire on the
+    // popout's own document, so drags never update. While a button is held in a
+    // popout, forward them to the main document.
+    containerEl.addEventListener(
+        "mousedown",
+        () => {
+            const doc = containerEl.ownerDocument;
+            if (doc === document) {
+                return;
+            }
+            const forward = (e: MouseEvent) => {
+                document.dispatchEvent(
+                    new MouseEvent(e.type, {
+                        bubbles: true,
+                        cancelable: true,
+                        clientX: e.clientX,
+                        clientY: e.clientY,
+                        screenX: e.screenX,
+                        screenY: e.screenY,
+                        button: e.button,
+                        buttons: e.buttons,
+                        ctrlKey: e.ctrlKey,
+                        shiftKey: e.shiftKey,
+                        altKey: e.altKey,
+                        metaKey: e.metaKey,
+                    })
+                );
+            };
+            const up = (e: MouseEvent) => {
+                forward(e);
+                doc.removeEventListener("mousemove", forward, true);
+                doc.removeEventListener("mouseup", up, true);
+            };
+            doc.addEventListener("mousemove", forward, true);
+            doc.addEventListener("mouseup", up, true);
+        },
+        true
+    );
+
     const cal = new Calendar(containerEl, {
         customButtons: {
             zoomIn: { text: "+", hint: "Zoom in", click: () => setZoom(slotHeight * zoomFactor) },
