@@ -360,19 +360,23 @@
 .fc .fc-timegrid-slot-label-cushion {
 	text-transform: uppercase;
 }
-/* Now-line time badge (text is set in calendar.ts). */
+/* Now-line time badge (text is set in calendar.ts). FullCalendar's own CSS
+   draws this element as a bordered triangle, so beat it with !important. */
+.fc .fc-timegrid-axis-frame .fc-timegrid-now-indicator-arrow,
 .fc .fc-timegrid-now-indicator-arrow {
-	border: 0;
-	margin-top: -9px;
-	left: 2px;
-	padding: 1px 5px;
-	border-radius: 4px;
-	background: var(--fc-now-indicator-color);
-	color: var(--text-on-accent);
-	font-size: 10px;
-	font-weight: 600;
-	line-height: 1.4;
-	z-index: 5;
+	border: 0 !important;
+	margin-top: -9px !important;
+	left: 2px !important;
+	padding: 1px 5px !important;
+	border-radius: 4px !important;
+	background: var(--fc-now-indicator-color) !important;
+	color: var(--text-on-accent) !important;
+	font-size: 10px !important;
+	font-weight: 600 !important;
+	line-height: 1.4 !important;
+	text-transform: none;
+	white-space: nowrap;
+	z-index: 10;
 }
 
 /* ---- UI pass: toolbar (left title, quiet buttons) ---- */
