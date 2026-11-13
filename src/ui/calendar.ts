@@ -181,6 +181,47 @@ export function renderCalendar(
             settings?.initialView?.[isNarrow ? "mobile" : "desktop"] ||
             (isNarrow ? "timeGrid3Days" : "timeGridWeek"),
         nowIndicator: true,
+        // Time badge on the hour axis at the now-line, kept current each minute.
+        nowIndicatorDidMount: ({ el, isAxis }) => {
+            if (!isAxis) {
+                return;
+            }
+            const update = () => {
+                el.textContent = new Date().toLocaleTimeString([], {
+                    hour: "numeric",
+                    minute: "2-digit",
+                    hour12: !settings?.timeFormat24h,
+                });
+            };
+            update();
+            const timer = window.setInterval(update, 30000);
+            (el as HTMLElement & { pjTimer?: number }).pjTimer = timer;
+        },
+        nowIndicatorWillUnmount: ({ el, isAxis }) => {
+            if (isAxis) {
+                window.clearInterval(
+                    (el as HTMLElement & { pjTimer?: number }).pjTimer
+                );
+            }
+        },
+        // Week/day headers: muted weekday plus a date number that is circled today.
+        dayHeaderContent: (arg) => {
+            if (!arg.view.type.startsWith("timeGrid")) {
+                return undefined;
+            }
+            const wrap = document.createElement("span");
+            wrap.className = "pj-day-header";
+            const name = wrap.createSpan({ cls: "pj-day-name" });
+            name.textContent = arg.date.toLocaleDateString([], {
+                weekday: "short",
+            });
+            const num = wrap.createSpan({ cls: "pj-day-num" });
+            num.textContent = String(arg.date.getDate());
+            if (arg.isToday) {
+                num.classList.add("is-today");
+            }
+            return { domNodes: [wrap] };
+        },
         slotDuration: "00:15:00",
         snapDuration: "00:15:00",
         scrollTimeReset: false,

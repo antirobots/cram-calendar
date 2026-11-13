@@ -308,3 +308,69 @@
 .fc .fc-timegrid-event-harness > .fc-timegrid-event {
 	margin-right: 1px;
 }
+
+/* ---- UI pass: headers, all-day row, now-line badge ---- */
+.fc .fc-col-header-cell-cushion {
+	color: var(--text-muted);
+	font-weight: 500;
+	padding: 6px 4px;
+}
+.fc .pj-day-header {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+}
+.fc .pj-day-num {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 1.7em;
+	height: 1.7em;
+	border-radius: 999px;
+	color: var(--text-normal);
+}
+.fc .pj-day-num.is-today {
+	background: var(--text-error-hover);
+	color: var(--text-on-accent);
+	font-weight: 600;
+}
+/* Today's column: barely tinted. */
+.fc .fc-timegrid-col.fc-day-today,
+.fc .fc-col-header-cell.fc-day-today {
+	background-color: transparent;
+}
+.fc .fc-timegrid-col.fc-day-today {
+	background-color: rgba(128, 128, 128, 0.05);
+}
+/* Outer frame and the heavy all-day divider. */
+.fc.fc-theme-standard .fc-scrollgrid,
+.fc .fc-scrollgrid {
+	border-width: 0;
+}
+.fc .fc-timegrid-divider {
+	padding: 0;
+	border-width: 1px 0 0;
+	background: transparent;
+}
+.fc .fc-timegrid-axis-cushion {
+	font-size: 0.75em;
+	color: var(--text-muted);
+	max-width: none;
+}
+.fc .fc-timegrid-slot-label-cushion {
+	text-transform: uppercase;
+}
+/* Now-line time badge (text is set in calendar.ts). */
+.fc .fc-timegrid-now-indicator-arrow {
+	border: 0;
+	margin-top: -9px;
+	left: 2px;
+	padding: 1px 5px;
+	border-radius: 4px;
+	background: var(--fc-now-indicator-color);
+	color: var(--text-on-accent);
+	font-size: 10px;
+	font-weight: 600;
+	line-height: 1.4;
+	z-index: 5;
+}
