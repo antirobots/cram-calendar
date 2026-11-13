@@ -431,3 +431,14 @@
 .fc .fc-event-time.ofc-has-checkbox .pj-event-duration {
 	flex-basis: 100%;
 }
+
+/* Calendars dropdown: divider above view options, and the settings gear. */
+.pj-calendar-separator {
+	height: 1px;
+	margin: 4px 0;
+	background: var(--background-modifier-border);
+}
+.fc .fc-settings-button {
+	font-size: 1.2em !important;
+	line-height: 1 !important;
+}

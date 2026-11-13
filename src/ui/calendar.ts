@@ -58,6 +58,10 @@ interface ExtraRenderProps {
     getPreview?: (eventId: string) => Promise<string | null>;
     /** Opens the show/hide calendars dropdown under the given toolbar button. */
     openCalendarMenu?: (anchor: HTMLElement) => void;
+    /** Start with Saturday and Sunday hidden. */
+    hideWeekends?: boolean;
+    /** Opens this plugin's settings tab. */
+    openSettings?: () => void;
 }
 
 export function renderCalendar(
@@ -76,6 +80,7 @@ export function renderCalendar(
         toggleTask,
         getPreview,
         openCalendarMenu,
+        openSettings,
     } = settings || {};
     const modifyEventCallback =
         modifyEvent &&
@@ -157,6 +162,11 @@ export function renderCalendar(
         customButtons: {
             zoomIn: { text: "+", hint: "Zoom in", click: () => setZoom(slotHeight * zoomFactor) },
             zoomOut: { text: "−", hint: "Zoom out", click: () => setZoom(slotHeight / zoomFactor) },
+            settings: {
+                text: "⚙",
+                hint: "Plugin settings",
+                click: () => openSettings?.(),
+            },
             calendars: {
                 text: "Calendars ▾",
                 hint: "Show or hide calendars",
@@ -181,12 +191,14 @@ export function renderCalendar(
             settings?.initialView?.[isNarrow ? "mobile" : "desktop"] ||
             (isNarrow ? "timeGrid3Days" : "timeGridWeek"),
         nowIndicator: true,
+        weekends: !settings?.hideWeekends,
         // Icon-only toolbar buttons need accessible names (runs after each render).
         datesSet: () => {
             const names: Record<string, string> = {
                 zoomIn: "Zoom in",
                 zoomOut: "Zoom out",
                 calendars: "Show or hide calendars",
+                settings: "Plugin settings",
             };
             for (const [key, label] of Object.entries(names)) {
                 const btn = containerEl.querySelector(`.fc-${key}-button`);
@@ -251,7 +263,8 @@ export function renderCalendar(
                   center: "",
                   right:
                       (openCalendarMenu ? "calendars " : "") +
-                      "today prev,next zoomOut,zoomIn dayGridMonth,timeGridWeek,timeGridDay,listWeek",
+                      "today prev,next zoomOut,zoomIn dayGridMonth,timeGridWeek,timeGridDay,listWeek" +
+                      (openSettings ? " settings" : ""),
               }
             : !isMobile
             ? {

@@ -72,6 +72,15 @@ function friendlyCalendarName(name: string): string {
 
 const PREVIEW_MAX_LINES = 12;
 const HIDDEN_CALENDARS_KEY = "full-calendar-pj-hidden-calendars";
+const HIDE_WEEKENDS_KEY = "full-calendar-pj-hide-weekends";
+
+const loadHideWeekends = (): boolean => {
+    try {
+        return window.localStorage.getItem(HIDE_WEEKENDS_KEY) === "1";
+    } catch (e) {
+        return false;
+    }
+};
 
 /** Turn a note body into a short plain-text preview. */
 function makePreview(body: string): string {
@@ -257,6 +266,25 @@ export class CalendarView extends ItemView {
             });
         }
 
+        // View option: weekends on/off (remembered).
+        pop.createDiv({ cls: "pj-calendar-separator" });
+        const weekendRow = pop.createEl("label", { cls: "pj-calendar-row" });
+        const weekendBox = weekendRow.createEl("input", { type: "checkbox" });
+        weekendBox.checked = !loadHideWeekends();
+        weekendRow.createSpan({
+            cls: "pj-calendar-row-name",
+            text: "Show weekends",
+        });
+        weekendBox.addEventListener("change", () => {
+            try {
+                window.localStorage.setItem(
+                    HIDE_WEEKENDS_KEY,
+                    weekendBox.checked ? "0" : "1"
+                );
+            } catch (e) {}
+            this.fullCalendarView?.setOption("weekends", weekendBox.checked);
+        });
+
         // Close when clicking anywhere outside the dropdown or its button.
         const doc = container.ownerDocument;
         const onDocDown = (e: MouseEvent) => {
@@ -398,6 +426,20 @@ export class CalendarView extends ItemView {
             timeFormat24h: this.plugin.settings.timeFormat24h,
             getPreview: (eventId) => this.getNotePreview(eventId),
             openCalendarMenu: (anchor) => this.openCalendarMenu(anchor),
+            hideWeekends: loadHideWeekends(),
+            openSettings: () => {
+                // Not in Obsidian's public typings, but stable in practice.
+                const setting = (
+                    this.app as unknown as {
+                        setting?: {
+                            open: () => void;
+                            openTabById: (id: string) => void;
+                        };
+                    }
+                ).setting;
+                setting?.open();
+                setting?.openTabById(this.plugin.manifest.id);
+            },
             openContextMenuForEvent: async (e, mouseEvent) => {
                 const menu = new Menu();
                 if (!this.plugin.cache) {
