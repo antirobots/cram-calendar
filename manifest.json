@@ -1,11 +1,10 @@
 {
 	"id": "full-calendar-pj",
-	"name": "Full Calendar (PJ)",
+	"name": "Cram Calendar",
 	"version": "0.10.7",
 	"minAppVersion": "0.16.3",
-	"description": "Obsidian integration with Full Calendar (fullcalendar.io)",
+	"description": "A personal fork of Full Calendar with 15-minute slots, per-event colours, duplicate, zoom and a Notion Calendar style look.",
 	"author": "Davis Haupt",
 	"authorUrl": "https://davi.sh",
-	"isDesktopOnly": false,
-	"fundingUrl": "https://ko-fi.com/davish"
+	"isDesktopOnly": false
 }
