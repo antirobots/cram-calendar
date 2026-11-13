@@ -15,6 +15,7 @@ import listPlugin from "@fullcalendar/list";
 import interactionPlugin from "@fullcalendar/interaction";
 import googleCalendarPlugin from "@fullcalendar/google-calendar";
 import iCalendarPlugin from "@fullcalendar/icalendar";
+import { setIcon } from "obsidian";
 
 // There is an issue with FullCalendar RRule support around DST boundaries which is fixed by this monkeypatch:
 // https://github.com/fullcalendar/fullcalendar/issues/5273#issuecomment-1360459342
@@ -203,6 +204,11 @@ export function renderCalendar(
             for (const [key, label] of Object.entries(names)) {
                 const btn = containerEl.querySelector(`.fc-${key}-button`);
                 btn?.setAttribute("aria-label", label);
+                if (key === "settings" && btn instanceof HTMLElement) {
+                    // Lucide "settings" icon from Obsidian's built-in set.
+                    btn.empty();
+                    setIcon(btn, "settings");
+                }
                 if (key === "calendars") {
                     btn?.setAttribute("aria-haspopup", "true");
                     if (!btn?.hasAttribute("aria-expanded")) {

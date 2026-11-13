@@ -442,3 +442,40 @@
 	font-size: 1.2em !important;
 	line-height: 1 !important;
 }
+
+/* ---- Compact layout: reclaim vertical space ---- */
+.workspace-leaf-content[data-type="full-calendar-pj-view"] .view-content,
+.workspace-leaf-content[data-type="full-calendar-pj-sidebar-view"] .view-content {
+	padding: 4px 6px 0 6px;
+}
+.fc .fc-toolbar.fc-header-toolbar {
+	margin-bottom: 4px;
+}
+.fc .fc-toolbar-title {
+	font-size: 1.05em;
+	line-height: 1.2;
+}
+.fc .fc-button.fc-button-primary {
+	padding: 3px 8px !important;
+	font-size: var(--font-ui-small, 13px) !important;
+}
+.fc .fc-col-header-cell-cushion {
+	padding: 2px 4px;
+}
+.fc .fc-daygrid-day-frame,
+.fc .fc-timegrid-axis-frame {
+	min-height: 0;
+}
+.fc .fc-daygrid-body-natural .fc-daygrid-day-events,
+.fc .fc-timegrid-axis-cushion {
+	padding-top: 0;
+	padding-bottom: 0;
+}
+.fc .fc-settings-button {
+	display: inline-flex;
+	align-items: center;
+}
+.fc .fc-settings-button .svg-icon {
+	width: 16px;
+	height: 16px;
+}
