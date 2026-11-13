@@ -283,7 +283,7 @@ export function renderCalendar(
                             .join(" ");
                         const durEl = document.createElement("span");
                         durEl.className = "pj-event-duration";
-                        durEl.textContent = ` · ${text}`;
+                        durEl.textContent = text;
                         timeEl.appendChild(durEl);
                     }
                 }

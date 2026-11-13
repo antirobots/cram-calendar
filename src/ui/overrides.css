@@ -257,7 +257,9 @@
 	font-size: 0.85em;
 	line-height: 1.15;
 }
-.fc .pj-narrow .pj-event-duration,
+.fc .fc-timegrid-event:not(.fc-timegrid-event-short) .pj-event-duration {
+	display: block;
+}
 .fc .pj-narrow .pj-event-preview,
 .fc .fc-timegrid-event-short .pj-event-duration,
 .fc .fc-timegrid-event-short .pj-event-preview {
